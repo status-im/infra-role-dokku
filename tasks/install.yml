@@ -1,0 +1,30 @@
+---
+- name: Dokku | Add repository signing key
+  apt_key:
+    id: '{{ dokku_repo_gpg_id }}'
+    url: '{{ dokku_repo_gpg_url }}'
+    state: present
+
+- name: Dokku | Add APT repository
+  become: yes
+  apt_repository:
+    repo: '{{ dokku_repo_apt_entry }}'
+    state: present
+
+- name: Dokku | Install package
+  apt:
+    name: dokku
+    state: present
+    update_cache: yes
+
+- name: Dokku | Install plugins
+  command: 'dokku plugin:install-dependencies --core'
+
+- name: Dokku | Check for debug plugin
+  command: 'sudo dokku plugin:list --help | grep debug'
+  register: dobug_plugin_check
+  ignore_errors: true
+
+- name: Dokku | Install debug plugin
+  command: 'dokku plugin:install {{ dokku_debug_plugin_repo }} debug'
+  when: dobug_plugin_check.failed

@@ -1,0 +1,9 @@
+---
+- name: Dokku | Enable HTTP & HTTPS
+  include_role: name=infra-role-open-ports
+  vars:
+    open_ports_default_comment: '{{ beacon_node_service_name }}'
+    open_ports_list:
+      dokku:
+        - port: [80,443]
+          disabled: '{{ not beacon_node_firewall_libp2p_open }}'

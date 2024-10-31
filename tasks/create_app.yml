@@ -1,0 +1,72 @@
+---
+- name: 'Dokku | {{ item.name }} | Check if app exists'
+  command: 'dokku apps:report {{ item.name }}'
+  ignore_errors: true
+  register: app
+
+- name: 'Dokku | {{ item.name }} | Create app'
+  command: 'dokku apps:create {{ item.name }}'
+  when: app.failed
+
+- name: 'Dokku | {{ item.name }} | Correct app domain'
+  command: 'dokku domains:clear {{ item.name }}'
+
+- name: 'Dokku | {{ item.name }} | Set SSL certs'
+  command: 'dokku certs:add {{ item.name }} {{ dokku_cont_ssl_cert }} {{ dokku_cont_ssl_key }}'
+
+- name: 'Dokku | {{ item.name }} | Format env variables for container'
+  set_fact:
+    env_variables: '{% for key in item.env.keys() %}{{ key }}="{{ item.env[key] }}" {% endfor %}'
+
+- name: 'Dokku | {{ item.name }} | Set app ENV variables'
+  command: 'dokku config:set {{ item.name }} {{ env_variables }}'
+
+- name: 'Dokku | {{ item.name }} | Add SSL backend port'
+  command: 'dokku proxy:ports-add {{ item.name }} http:{{ dokku_ssl_backend_port }}:5000'
+
+- name: 'Dokku | {{ item.name }} | Clone app repo'
+  git:
+    repo: '{{ item.repo }}'
+    dest: '/tmp/{{ item.name }}'
+    update: true
+    force: true
+  become_user: admin
+
+- name: 'Dokku | {{ item.name }} | Check for remote to repo'
+  command: 'git config remote.dokku.url'
+  args:
+    chdir: '/tmp/{{ item.name }}'
+  register: dokku_remote_check
+  become_user: admin
+  ignore_errors: true
+
+- name: 'Dokku | {{ item.name }} | Add remote to repo'
+  command: 'git remote add dokku dokku@localhost:{{ item.name }}'
+  args:
+    chdir: '/tmp/{{ item.name }}'
+  when: dokku_remote_check.rc > 0
+  become_user: admin
+
+- name: 'Dokku | {{ item.name }} | Push repo'
+  command: 'git push dokku'
+  args:
+    chdir: '/tmp/{{ item.name }}'
+  become_user: admin
+
+- name: 'Dokku | {{ item.name }} | Create Consul service'
+  include_role: name=infra-role-consul-service
+  vars:
+    consul_config_name: 'dokku_{{ item.name }}'
+    consul_services:
+      - id:   'dokku:{{ item.name }}'
+        name: 'dokku'
+        tags: ['dokku', 'ssl-proxy-backend']
+        port: '{{ dokku_ssl_backend_port }}'
+        address: '{{ ansible_local.wireguard.address }}'
+        meta:
+          proxy_fqdn: '{{ item.name }}.{{ dokku_sub_domain }}'
+        checks:
+          - id:   'dokku-health:{{ item.name }}'
+            name: 'Dokku Site Healthcheck'
+            type: 'http'
+            http: 'http://localhost:{{ dokku_ssl_backend_port }}/ping'

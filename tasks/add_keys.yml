@@ -1,0 +1,16 @@
+---
+- name: Dokku | Find authorized_keys files for users
+  find:
+    paths: /home
+    file_type: file
+    recurse: yes
+    patterns: authorized_keys
+    excludes: admin
+  register: user_keys
+
+# TODO make this more robust, the file can contain more than one kay
+# WARNING: Disabled for now since it doesn't work
+# ISSUE: https://github.com/dokku/dokku/issues/3417
+#- name: Dokku | Add keys for users to access Dokku
+#  command: 'dokku ssh-keys:add {{ item.pw_name }} {{ item.path | quote }}'
+#  with_items: '{{ user_keys.files }}'

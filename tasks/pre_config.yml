@@ -1,0 +1,18 @@
+---
+- name: Dokku | Stop installer process
+  service:
+    name: dokku-installer
+    state: stopped
+  ignore_errors: yes
+
+- name: Dokku | Configure without Web UI
+  debconf:
+    name: dokku
+    question: '{{ item.q }}'
+    value: '{{ item.v }}'
+    vtype: '{{ item.t }}'
+  with_items:
+    - { q: 'dokku/web_config',   t: 'boolean', v: 'false' }
+    - { q: 'dokku/vhost_enable', t: 'boolean', v: 'true' }
+    - { q: 'dokku/hostname',     t: 'string',  v: '{{ dokku_host_domain }}' }
+    - { q: 'dokku/key_file',     t: 'string',  v: '/home/jakub/.ssh/authorized_keys' }

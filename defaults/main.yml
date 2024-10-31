@@ -1,0 +1,19 @@
+---
+dokku_sub_domain: 'status.im'
+dokku_host_domain: 'dokku.status.im'
+
+dokku_repo_url: 'https://packagecloud.io/dokku/dokku/ubuntu/'
+dokku_repo_gpg_url: 'https://packagecloud.io/dokku/dokku/gpgkey'
+dokku_repo_gpg_id: '288B3315'
+
+dokku_repo_apt_entry: 'deb {{ dokku_repo_url }} {{ ansible_distribution_release }} main'
+
+dokku_cont_ssl_cert: /certs/origin.crt
+dokku_cont_ssl_key: /certs/origin.key
+
+dokku_ssl_backend_port: 8080
+
+dokku_debug_plugin_repo: 'https://github.com/josegonzalez/dokku-debug.git'
+
+# here is where you define apps and how they should be deployed
+dokku_apps: []

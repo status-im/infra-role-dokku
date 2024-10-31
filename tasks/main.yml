@@ -1,0 +1,8 @@
+---
+- include_tasks: firewall.yml
+- include_tasks: pre_config.yml
+- include_tasks: install.yml
+- include_tasks: add_keys.yml
+- include_tasks: post_config.yml
+- include_tasks: create_app.yml
+  with_items: '{{ dokku_apps }}'
